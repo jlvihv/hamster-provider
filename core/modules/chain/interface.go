@@ -8,8 +8,11 @@ import (
 type ReportClient interface {
 	// RegisterResource resource registration
 	RegisterResource(ResourceInfo) error
+	RegisterResourceDemo(ResourceInfoDemo) error
+	RequestDAppDeploymentDemo(app *DAppDeploymentDemo) error
 	// RemoveResource resource deletion
 	RemoveResource(index uint64) error
+	RemoveResourceDemo(index uint64) error
 	// ModifyResourcePrice modify resource unit price
 	ModifyResourcePrice(index uint64, unitPrice int64) error
 	// ChangeResourceStatus modify resource status to unused
@@ -20,6 +23,7 @@ type ReportClient interface {
 
 	// Heartbeat protocol heartbeat report
 	Heartbeat(agreementindex uint64) error
+	HeartbeatDemo(agreementindex uint64) error
 
 	// OrderExec
 	OrderExec(orderIndex uint64) error

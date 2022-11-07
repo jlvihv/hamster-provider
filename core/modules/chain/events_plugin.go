@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/ethereum/go-ethereum/log"
-	"reflect"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hamster-shared/hamster-provider/log"
 )
 
 func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadata, t interface{}) error {
-	log.Info(fmt.Sprintf("will decode event records from raw hex: %#x", e))
+	log.GetLogger().Info(fmt.Sprintf("will decode event records from raw hex: %#x", e))
 
 	// ensure t is a pointer
 	ttyp := reflect.TypeOf(t)
@@ -42,11 +44,11 @@ func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadat
 		return err
 	}
 
-	log.Info(fmt.Sprintf("found %v events", n))
+	log.GetLogger().Info(fmt.Sprintf("found %v events", n))
 
 	// iterate over events
 	for i := uint64(0); i < n.Uint64(); i++ {
-		log.Info(fmt.Sprintf("decoding event #%v", i))
+		log.GetLogger().Info(fmt.Sprintf("decoding event #%v", i))
 
 		// decode Phase
 		phase := types.Phase{}
@@ -62,27 +64,28 @@ func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadat
 			return fmt.Errorf("unable to decode EventID for event #%v: %v", i, err)
 		}
 
-		log.Info(fmt.Sprintf("event #%v has EventID %v", i, id))
+		log.GetLogger().Info(fmt.Sprintf("event #%v has EventID %v", i, id))
 
 		// ask metadata for method & event name for event
 		moduleName, eventName, err := m.FindEventNamesForEventID(id)
 		// moduleName, eventName, err := "System", "ExtrinsicSuccess", nil
 		if err != nil {
 			//return fmt.Errorf("unable to find event with EventID %v in metadata for event #%v: %s", id, i, err)
-			log.Warn("unable to find event with EventID %v in metadata for event #%v: %s", id, i, err)
+			log.GetLogger().Warn("unable to find event with EventID %v in metadata for event #%v: %s", id, i, err)
 
 			return err
 		}
 
-		log.Info(fmt.Sprintf("event #%v is in module %v with event name %v", i, moduleName, eventName))
+		log.GetLogger().Info(fmt.Sprintf("event #%v is in module %v with event name %v", i, moduleName, eventName))
 
 		// check whether name for eventID exists in t
 		field := val.FieldByName(fmt.Sprintf("%v_%v", moduleName, eventName))
 		var holder reflect.Value
 		if !field.IsValid() {
-			log.Info(fmt.Sprintf("unable to find field %v_%v for event #%v with EventID %v ", moduleName, eventName, i, id))
+			log.GetLogger().Warn(fmt.Sprintf("unable to find field %v_%v for event #%v with EventID %v ", moduleName, eventName, i, id))
 			holder, err = getNewStructWithEventInfo(m, moduleName, eventName)
 			if err != nil {
+				log.GetLogger().Errorf("unable to get new struct with event info for event #%v with EventID %v: %v", i, id, err)
 				return err
 			}
 		} else {
@@ -114,6 +117,7 @@ func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadat
 		for j := 1; j < numFields; j++ {
 			err = decoder.Decode(holder.Elem().FieldByIndex([]int{j}).Addr().Interface())
 			if err != nil {
+				spew.Dump(holder.Elem().FieldByIndex([]int{j}).Addr().Interface())
 				return fmt.Errorf("unable to decode field %v event #%v with EventID %v, field %v_%v: %v", j, i, id, moduleName,
 					eventName, err)
 			}
@@ -123,7 +127,7 @@ func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadat
 			// add the decoded event to the slice
 			field.Set(reflect.Append(field, holder.Elem()))
 
-			log.Info(fmt.Sprintf("decoded event #%v", i))
+			log.GetLogger().Info(fmt.Sprintf("decoded event #%v", i))
 		}
 	}
 	return nil

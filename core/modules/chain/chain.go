@@ -248,6 +248,89 @@ func (cc *ChainClient) GetEvent(blockNumber uint64) (*MyEventRecords, error) {
 	return &events, err
 }
 
+func (cc *ChainClient) RegisterResourceDemo(r ResourceInfoDemo) error {
+	log.GetLogger().Debugf("call RegisterResource with info: %v", r)
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		log.GetLogger().Errorf("get metadata latest error: %s", err)
+		return err
+	}
+	log.GetLogger().Debugf("get metadata latest success")
+
+	c, err := types.NewCall(meta, "Provider.register_resource", r.PeerID, r.PublicIP, r.CPU, r.Memory)
+	if err != nil {
+		log.GetLogger().Errorf("new call error: %s", err)
+		return err
+	}
+	log.GetLogger().Debugf("new call success")
+
+	hook := func(header *types.Header) error {
+		events, err := cc.GetEvent(uint64(header.Number))
+		if err != nil {
+			log.GetLogger().Errorf("get event error: %s", err)
+			return err
+		}
+		log.GetLogger().Debugf("get event success")
+		if len(events.Provider_RegisterResourceSuccess) > 0 {
+			for _, e := range events.Provider_RegisterResourceSuccess {
+				fmt.Printf("register resource success, event: %v", e)
+
+				return nil
+			}
+		}
+		log.GetLogger().Error("non Provider_RegisterResourceSuccess event, boot failed")
+		return errors.New("boot failed")
+	}
+
+	return cc.callAndWatch(c, meta, hook)
+}
+
+func (cc *ChainClient) ListenDappDeployment() error {
+
+	return nil
+}
+
+// 这个其实不需要，因为不需要我们这端去部署，部署是从网页操作的，我们不需要实现这个
+func (cc *ChainClient) RequestDAppDeploymentDemo(app *DAppDeploymentDemo) error {
+
+	// 申请部署 dapp
+	log.GetLogger().Debugf("call request dapp deployment with info: %v", app)
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		log.GetLogger().Errorf("get metadata latest error: %s", err)
+		return err
+	}
+	log.GetLogger().Debugf("get metadata latest success")
+
+	c, err := types.NewCall(meta, "Provider.request_dapp_deployment", app.Method, app.DAppName, app.CPU, app.Memory, app.Replicas, app.Acliable)
+	if err != nil {
+		log.GetLogger().Errorf("new call Provider.request_dapp_deployment error: %s", err)
+		return err
+	}
+	log.GetLogger().Debugf("new call success")
+
+	hook := func(header *types.Header) error {
+		events, err := cc.GetEvent(uint64(header.Number))
+		if err != nil {
+			log.GetLogger().Errorf("get event error: %s", err)
+			return err
+		}
+		log.GetLogger().Debugf("get event success")
+		if len(events.Provider_DeploymentDApp) > 0 {
+			for _, e := range events.Provider_DeploymentDApp {
+				fmt.Printf("deployment dapp success, event: %v", e)
+				return nil
+			}
+		}
+		log.GetLogger().Error("non Provider_DeploymentDApp event, boot failed")
+		return errors.New("boot failed")
+	}
+
+	return cc.callAndWatch(c, meta, hook)
+}
+
 // Register chain
 func (cc *ChainClient) RegisterResource(r ResourceInfo) error {
 	log.GetLogger().Debugf("call RegisterResource with info: %v", r)
@@ -299,15 +382,15 @@ func (cc *ChainClient) RegisterResource(r ResourceInfo) error {
 		log.GetLogger().Debugf("get event success")
 		if len(events.Provider_RegisterResourceSuccess) > 0 {
 			for _, e := range events.Provider_RegisterResourceSuccess {
-				if e.PeerId == cc.getPeerId() {
-					cf, err := cc.cm.GetConfig()
-					if err != nil {
-						return err
-					}
-					cf.ChainRegInfo.ResourceIndex = uint64(e.Index)
-					log.GetLogger().Infof("register resource success, resource index: %d", e.Index)
-					return cc.cm.Save(cf)
+				// if e.PeerID == cc.getPeerId() {
+				cf, err := cc.cm.GetConfig()
+				if err != nil {
+					return err
 				}
+				cf.ChainRegInfo.ResourceIndex = uint64(e.ResourceIndex)
+				log.GetLogger().Infof("register resource success, resource index: %d", e.ResourceIndex)
+				return cc.cm.Save(cf)
+				// }
 			}
 		}
 		log.GetLogger().Error("non Provider_RegisterResourceSuccess event, boot failed")
@@ -315,6 +398,22 @@ func (cc *ChainClient) RegisterResource(r ResourceInfo) error {
 	}
 
 	return cc.callAndWatch(c, meta, hook)
+}
+
+func (cc *ChainClient) RemoveResourceDemo(index uint64) error {
+	log.GetLogger().Info("call OfflineResource")
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	c, err := types.NewCall(meta, "Provider.offline_resource", types.NewU64(index))
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
 }
 
 func (cc *ChainClient) RemoveResource(index uint64) error {
@@ -389,6 +488,22 @@ func (cc *ChainClient) Heartbeat(agreementindex uint64) error {
 	}
 
 	c, err := types.NewCall(meta, "ResourceOrder.heartbeat", types.NewU64(agreementindex))
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
+}
+
+func (cc *ChainClient) HeartbeatDemo(resourceIndex uint64) error {
+	log.GetLogger().Info("call Heartbeat")
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	c, err := types.NewCall(meta, "ResourceOrder.resource_heartbeat", types.NewU64(resourceIndex), types.NewU64(0))
 	if err != nil {
 		return err
 	}

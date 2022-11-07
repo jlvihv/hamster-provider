@@ -3,6 +3,8 @@ package event
 import (
 	"fmt"
 	"time"
+
+	"github.com/hamster-shared/hamster-provider/log"
 )
 
 func successDealOrder(ctx *EventContext, orderNo uint64, name string) error {
@@ -18,13 +20,16 @@ func successDealOrder(ctx *EventContext, orderNo uint64, name string) error {
 
 	// send timed heartbeats
 	go func() {
-		ticker := time.NewTicker(time.Minute * 5)
+		ticker := time.NewTicker(time.Second * 5)
 		ctx.TimerService.SubTicker(agreementIndex, ticker)
 		for {
 			<-ticker.C
 			// report heartbeat
 			agreementIndex := ctx.GetConfig().ChainRegInfo.AgreementIndex
-			_ = ctx.ReportClient.Heartbeat(agreementIndex)
+			err = ctx.ReportClient.HeartbeatDemo(agreementIndex)
+			if err != nil {
+				log.GetLogger().Error("heartbeat error", err)
+			}
 		}
 	}()
 

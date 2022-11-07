@@ -474,7 +474,7 @@ func deleteResource(gin *MyContext) {
 
 	reportClient := gin.CoreContext.ReportClient
 	ri := gin.CoreContext.GetConfig().ChainRegInfo.ResourceIndex
-	err := reportClient.RemoveResource(ri)
+	err := reportClient.RemoveResourceDemo(ri)
 	if err != nil {
 		gin.JSON(http.StatusBadRequest, BadRequest("Delete resource failed"))
 	} else {

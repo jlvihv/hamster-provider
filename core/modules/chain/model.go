@@ -27,6 +27,22 @@ type ResourceInfo struct {
 	Specification uint32    `json:"specification"`
 }
 
+type ResourceInfoDemo struct {
+	PeerID   string
+	PublicIP string
+	CPU      uint8
+	Memory   uint8
+}
+
+type DAppDeploymentDemo struct {
+	CPU      uint8
+	Memory   uint8
+	Method   uint8
+	DAppName string
+	Replicas uint8
+	Acliable uint8
+}
+
 type RentalAgreement struct {
 	Index      types.U64
 	Provider   types.AccountID

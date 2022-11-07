@@ -3,15 +3,14 @@ package listener
 import (
 	"context"
 	"fmt"
-	"time"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	chain2 "github.com/hamster-shared/hamster-provider/core/modules/chain"
 	"github.com/hamster-shared/hamster-provider/core/modules/config"
+	"github.com/hamster-shared/hamster-provider/core/modules/demo"
 	"github.com/hamster-shared/hamster-provider/core/modules/event"
-	"github.com/hamster-shared/hamster-provider/core/modules/provider/thegraph"
 	"github.com/hamster-shared/hamster-provider/core/modules/utils"
 	"github.com/hamster-shared/hamster-provider/log"
 )
@@ -60,24 +59,20 @@ func (l *ChainListener) start() error {
 		return err
 	}
 
-	resource := chain2.ResourceInfo{
-		PeerId:        cfg.Identity.PeerID,
-		Cpu:           cfg.Vm.Cpu,
-		Memory:        cfg.Vm.Mem,
-		System:        cfg.Vm.System,
-		CpuModel:      utils.GetCpuModel(),
-		Price:         cfg.ChainRegInfo.Price,
-		ExpireTime:    time.Now().AddDate(0, 0, 10),
-		ResourceIndex: cfg.ChainRegInfo.ResourceIndex,
-		PublicIP:      cfg.PublicIP,
-		Specification: cfg.Specification,
+	demo := chain2.ResourceInfoDemo{
+		PeerID:   cfg.Identity.PeerID,
+		PublicIP: cfg.PublicIP,
+		CPU:      uint8(cfg.Vm.Cpu),
+		Memory:   uint8(cfg.Vm.Mem),
 	}
-	err = l.reportClient.RegisterResource(resource)
+
+	err = l.reportClient.RegisterResourceDemo(demo)
 
 	if err != nil {
 		log.GetLogger().Errorf("register resource error: ", err)
 		return err
 	}
+	log.GetLogger().Info("register resource success")
 
 	l.ctx, l.cancel = context.WithCancel(context.Background())
 	isPanic := make(chan bool)
@@ -88,10 +83,8 @@ func (l *ChainListener) start() error {
 func (l *ChainListener) setWatchEventState(ctx context.Context, isPanic chan bool) {
 	for {
 		go l.watchEvent(ctx, isPanic)
-		select {
-		case <-isPanic:
-			go l.watchEvent(ctx, isPanic)
-		}
+		<-isPanic
+		go l.watchEvent(ctx, isPanic)
 	}
 }
 
@@ -104,8 +97,8 @@ func (l *ChainListener) stop() error {
 	if err != nil {
 		return err
 	}
-	thegraph.SetIsServer(false)
-	return l.reportClient.RemoveResource(cfg.ChainRegInfo.ResourceIndex)
+	// thegraph.SetIsServer(false)
+	return l.reportClient.RemoveResourceDemo(cfg.ChainRegInfo.ResourceIndex)
 }
 
 // WatchEvent chain event listener
@@ -139,7 +132,7 @@ func (l *ChainListener) watchEvent(ctx context.Context, channel chan bool) {
 		case <-ctx.Done():
 			return
 		case set := <-sub.Chan():
-			log.GetLogger().Info("watch ：", set.Block.Hex())
+			log.GetLogger().Info("watch :", set.Block.Hex())
 			for _, chng := range set.Changes {
 				if !codec.Eq(chng.StorageKey, key) || !chng.HasStorageData {
 					// skip, we are only interested in events with content
@@ -149,6 +142,10 @@ func (l *ChainListener) watchEvent(ctx context.Context, channel chan bool) {
 				evt := chain2.MyEventRecords{}
 				storageData := chng.StorageData
 				meta, err := l.api.RPC.State.GetMetadataLatest()
+				if err != nil {
+					log.GetLogger().Errorf("get metadata error: ", err)
+					continue
+				}
 				err = types.EventRecordsRaw(storageData).DecodeEventRecords(meta, &evt)
 				if err != nil {
 					log.GetLogger().Error(err)
@@ -176,6 +173,34 @@ func (l *ChainListener) watchEvent(ctx context.Context, channel chan bool) {
 					l.dealCancelOrderSuccess(e.OrderIndex)
 				}
 
+				for _, e := range evt.Provider_DeploymentDApp {
+					log.GetLogger().Info("deal deployment dapp: ", e)
+					app := demo.NewDApp(e.PeerID, uint8(e.CPU), uint8(e.Memory), uint8(e.StartMethod), e.Command)
+					err := app.Start()
+					if err != nil {
+						log.GetLogger().Error("start dapp error: ", err)
+					}
+				}
+
+				for _, e := range evt.Provider_ResourceHeartbeat {
+					log.GetLogger().Info("resource heartbeat event: ", e)
+				}
+
+				for _, e := range evt.Provider_DAppHeartbeat {
+					log.GetLogger().Info("dapp heartbeat event: ", e)
+				}
+
+				for _, e := range evt.Provider_DAppRedistribution {
+					log.GetLogger().Info("dapp redistribution event: ", e)
+				}
+
+				for _, e := range evt.Provider_EndDAppSuccess {
+					log.GetLogger().Info("end dapp success event: ", e)
+				}
+
+				for _, e := range evt.Provider_StopDApp {
+					log.GetLogger().Info("stop dapp event: ", e)
+				}
 			}
 		}
 	}
