@@ -97,6 +97,7 @@ type MyEventRecords struct {
 	Provider_DAppRedistribution      []Provider_DAppRedistribution      //nolint:stylecheck,golint
 	Provider_EndDAppSuccess          []Provider_EndDAppSuccess          //nolint:stylecheck,golint
 	Provider_StopDApp                []Provider_StopDApp                //nolint:stylecheck,golint
+	Provider_DownLineResource        []Provider_DownLineResource        //nolint:stylecheck,golint
 	// Provider_RegisterResourceSuccess              []EventProviderRegisterResourceSuccess //nolint:stylecheck,golint
 	ResourceOrder_CreateOrderSuccess              []EventResourceOrderCreateOrderSuccess //nolint:stylecheck,golint
 	ResourceOrder_OrderExecSuccess                []EventResourceOrderOrderExecSuccess
@@ -137,4 +138,11 @@ type Provider_StopDApp struct {
 	PeerID    string
 	DAppIndex types.U64
 	Topics    []types.Hash
+}
+
+type Provider_DownLineResource struct {
+	Phase         types.Phase
+	ResourceIndex types.U64
+	DAppIndex     []types.U64
+	Topics        []types.Hash
 }
