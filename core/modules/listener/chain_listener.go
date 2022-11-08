@@ -175,8 +175,17 @@ func (l *ChainListener) watchEvent(ctx context.Context, channel chan bool) {
 
 				for _, e := range evt.Provider_DeploymentDApp {
 					log.GetLogger().Info("deal deployment dapp: ", e)
+					cfg, err := l.cm.GetConfig()
+					if err != nil {
+						log.GetLogger().Errorf("get config error: ", err)
+						continue
+					}
+					if e.PeerID != cfg.Identity.PeerID {
+						log.GetLogger().Info("此 dapp 不归我部署，忽略")
+						continue
+					}
 					app := demo.NewDApp(e.PeerID, uint8(e.CPU), uint8(e.Memory), uint8(e.StartMethod), e.Command)
-					err := app.Start()
+					err = app.Start()
 					if err != nil {
 						log.GetLogger().Error("start dapp error: ", err)
 					}
