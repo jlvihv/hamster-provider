@@ -98,6 +98,7 @@ func (l *ChainListener) stop() error {
 		return err
 	}
 	// thegraph.SetIsServer(false)
+	log.GetLogger().Info("调用 ChainListener 里的 stop 方法，删除", cfg.ChainRegInfo.ResourceIndex)
 	return l.reportClient.RemoveResourceDemo(cfg.ChainRegInfo.ResourceIndex)
 }
 

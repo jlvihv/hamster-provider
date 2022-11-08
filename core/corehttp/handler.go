@@ -74,8 +74,8 @@ func listenP2p(gin *MyContext) {
 	}
 
 	if port > 65535 || port <= 0 {
-		log.GetLogger().Error("port range invalid ，getter 65535 or smaller 0")
-		gin.String(400, "port range invalid ，getter 65535 or smaller 0")
+		log.GetLogger().Error("port range invalid , getter 65535 or smaller 0")
+		gin.String(400, "port range invalid , getter 65535 or smaller 0")
 		return
 	}
 
@@ -109,8 +109,8 @@ func forwardP2p(gin *MyContext) {
 	}
 
 	if port > 65535 || port <= 0 {
-		log.GetLogger().Error("port range invalid ，getter 65535 or smaller 0")
-		gin.String(400, "port range invalid ，getter 65535 or smaller 0")
+		log.GetLogger().Error("port range invalid , getter 65535 or smaller 0")
+		gin.String(400, "port range invalid , getter 65535 or smaller 0")
 		return
 	}
 
@@ -259,7 +259,7 @@ func setConfig(gin *MyContext) {
 	cfg.Specification = specifiction
 	cfg.Vm = reqBody.Vm
 	cfg.ChainApi = reqBody.ChainApi
-	// 校验seed 是否合法
+	// 校验 seed 是否合法
 	_, err = signature.KeyringPairFromSecret(reqBody.SeedOrPhrase, 42)
 	if err != nil {
 		gin.JSON(http.StatusOK, BadRequest("seed not invalid"))
@@ -474,6 +474,7 @@ func deleteResource(gin *MyContext) {
 
 	reportClient := gin.CoreContext.ReportClient
 	ri := gin.CoreContext.GetConfig().ChainRegInfo.ResourceIndex
+	log.GetLogger().Info("调用 deleteResource 函数，删除", ri)
 	err := reportClient.RemoveResourceDemo(ri)
 	if err != nil {
 		gin.JSON(http.StatusBadRequest, BadRequest("Delete resource failed"))

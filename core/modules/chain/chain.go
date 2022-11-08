@@ -158,7 +158,7 @@ func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook fun
 
 	sub, err := cc.api.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
-		log.GetLogger().Info(err)
+		log.GetLogger().Error("submit and watch extrinsic error: ", err)
 		return err
 	}
 	defer sub.Unsubscribe()
@@ -275,6 +275,11 @@ func (cc *ChainClient) RegisterResourceDemo(r ResourceInfoDemo) error {
 		if len(events.Provider_RegisterResourceSuccess) > 0 {
 			for _, e := range events.Provider_RegisterResourceSuccess {
 				fmt.Printf("register resource success, event: %v", e)
+				log.GetLogger().Infof("resource index: %d", e.ResourceIndex)
+				// 将这个资源索引保存进配置文件里
+				cf, _ := cc.cm.GetConfig()
+				cf.ChainRegInfo.ResourceIndex = uint64(e.ResourceIndex)
+				cc.cm.Save(cf)
 
 				return nil
 			}
