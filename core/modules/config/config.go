@@ -38,6 +38,7 @@ type Config struct {
 	ConfigFlag    ConfigFlag    `json:"configFlag" yaml:"configFlag"`
 	PublicIP      string        `json:"publicIP" yaml:"publicIP"`
 	Specification Specification `json:"specification" yaml:"specification"`
+	Dapps         []Dapp        `json:"dapps" yaml:"dapps"`
 }
 
 type ConfigFlag string
@@ -92,6 +93,17 @@ type ChainRegInfo struct {
 	Price           uint64 `json:"price" yaml:"price"`
 	AccountAddress  string `json:"accountAddress" yaml:"accountAddress"`
 	DeployType      uint32 `json:"deployType" yaml:"deployType"`
+}
+
+type Dapp struct {
+	Index    uint64
+	Name     string
+	Type     uint8
+	Command  string
+	CPU      uint8
+	Memory   uint8
+	Replicas uint8
+	Acliable uint8
 }
 
 func NewConfigManager() *ConfigManager {

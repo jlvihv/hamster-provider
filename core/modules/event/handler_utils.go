@@ -20,7 +20,9 @@ func successDealOrder(ctx *EventContext, orderNo uint64, name string) error {
 
 	// send timed heartbeats
 	go func() {
-		ticker := time.NewTicker(time.Second * 5)
+		// 启动心跳任务
+		log.GetLogger().Info("定时心跳已启动")
+		ticker := time.NewTicker(time.Second * 175)
 		ctx.TimerService.SubTicker(agreementIndex, ticker)
 		for {
 			<-ticker.C
@@ -29,6 +31,8 @@ func successDealOrder(ctx *EventContext, orderNo uint64, name string) error {
 			err = ctx.ReportClient.HeartbeatDemo(agreementIndex)
 			if err != nil {
 				log.GetLogger().Error("heartbeat error", err)
+			} else {
+				log.GetLogger().Info("发送资源心跳成功")
 			}
 		}
 	}()

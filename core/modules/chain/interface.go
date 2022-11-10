@@ -24,6 +24,8 @@ type ReportClient interface {
 	// Heartbeat protocol heartbeat report
 	Heartbeat(agreementindex uint64) error
 	HeartbeatDemo(agreementindex uint64) error
+	ResourceHeartbeatDemo() error
+	DAppHeartbeatDemo(name string) error
 
 	// OrderExec
 	OrderExec(orderIndex uint64) error

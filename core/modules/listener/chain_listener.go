@@ -3,6 +3,7 @@ package listener
 import (
 	"context"
 	"fmt"
+	"time"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -76,6 +77,21 @@ func (l *ChainListener) start() error {
 
 	l.ctx, l.cancel = context.WithCancel(context.Background())
 	isPanic := make(chan bool)
+	// 定时发送资源心跳
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err := l.reportClient.ResourceHeartbeatDemo()
+				if err != nil {
+					log.GetLogger().Error("resource heartbeat error: ", err)
+				}
+				time.Sleep(170 * time.Second)
+			}
+		}
+	}(l.ctx)
 	go l.setWatchEventState(l.ctx, isPanic)
 	return nil
 }
@@ -189,6 +205,28 @@ func (l *ChainListener) watchEvent(ctx context.Context, channel chan bool) {
 					err = app.Start()
 					if err != nil {
 						log.GetLogger().Error("start dapp error: ", err)
+					} else {
+						log.GetLogger().Info("start dapp success")
+						cfg, err := l.cm.GetConfig()
+						if err != nil {
+							log.GetLogger().Errorf("get config error: ", err)
+							continue
+						}
+						cfg.Dapps = append(cfg.Dapps, config.Dapp{
+							Index:    uint64(e.DAppIndex),
+							Name:     "",
+							Type:     uint8(e.StartMethod),
+							Command:  e.Command,
+							CPU:      uint8(e.CPU),
+							Memory:   uint8(e.Memory),
+							Replicas: 0,
+							Acliable: 0,
+						})
+						err = l.cm.Save(cfg)
+						if err != nil {
+							log.GetLogger().Error("save config error: ", err)
+							continue
+						}
 					}
 				}
 

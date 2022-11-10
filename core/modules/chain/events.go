@@ -146,3 +146,9 @@ type Provider_DownLineResource struct {
 	DAppIndex     []types.U64
 	Topics        []types.Hash
 }
+
+type Provider_DAppRedistributionFailed struct {
+	Phase     types.Phase
+	DAppsName []string
+	Topics    []types.Hash
+}

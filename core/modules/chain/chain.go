@@ -516,6 +516,52 @@ func (cc *ChainClient) HeartbeatDemo(resourceIndex uint64) error {
 	return cc.callAndWatch(c, meta, nil)
 }
 
+// ResourceHeartbeatDemo 发送资源心跳，附带 Dapp 索引
+func (cc *ChainClient) ResourceHeartbeatDemo() error {
+	log.GetLogger().Debug("call ResourceHeartbeat")
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	// 去配置文件里读取资源索引和 Dapp 索引
+	cfg, err := cc.cm.GetConfig()
+	if err != nil {
+		log.GetLogger().Errorf("get config error: %s", err)
+		return err
+	}
+	resourceIndex := cfg.ChainRegInfo.ResourceIndex
+	dappsIndex := []types.U64{}
+	for _, dapp := range cfg.Dapps {
+		dappsIndex = append(dappsIndex, types.NewU64(dapp.Index))
+	}
+
+	c, err := types.NewCall(meta, "Provider.resource_heartbeat", types.NewU64(resourceIndex), dappsIndex)
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
+}
+
+// DAppHeartbeatDemo 发送 dapp 心跳，传递 dapp name
+func (cc *ChainClient) DAppHeartbeatDemo(name string) error {
+	log.GetLogger().Debug("call DAppHeartbeat for ", name)
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	c, err := types.NewCall(meta, "Provider.dapp_heartbeat", name)
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
+}
+
 // LoadKeyFromChain Get the public Yue of the current node from the chain
 func (cc *ChainClient) LoadKeyFromChain() ([]string, error) {
 	return []string{}, nil
